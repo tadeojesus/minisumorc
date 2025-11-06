@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control MiniSumo 🥋</title>
+<style>
+  body {
+    background: #111;
+    color: #fff;
+    text-align: center;
+    font-family: sans-serif;
+  }
+  h2 {
+    margin-top: 20px;
+  }
+  button {
+    width: 100px;
+    height: 60px;
+    font-size: 22px;
+    margin: 10px;
+    border: none;
+    border-radius: 12px;
+    background: #444;
+    color: white;
+    transition: background 0.2s;
+  }
+  button:active {
+    background: #1e90ff;
+  }
+  #connect {
+    background: #28a745;
+  }
+</style>
+</head>
+<body>
+<h2>Control MiniSumo 🥋</h2>
+
+<button id="connect">🔗 Conectar</button><br><br>
+
+<div>
+  <button id="up">↑</button><br>
+  <button id="left">←</button>
+  <button id="stop">⏹</button>
+  <button id="right">→</button><br>
+  <button id="down">↓</button>
+</div>
+
+<script>
+let device, chara;
+const SERVICE_UUID = "12345678-1234-5678-1234-56789abcdef0";
+const CHAR_UUID    = "12345678-1234-5678-1234-56789abcdef1";
+
+document.getElementById('connect').onclick = async () => {
+  try {
+    device = await navigator.bluetooth.requestDevice({
+      filters: [{ services: [SERVICE_UUID] }]
+    });
+    const server = await device.gatt.connect();
+    const service = await server.getPrimaryService(SERVICE_UUID);
+    chara = await service.getCharacteristic(CHAR_UUID);
+    alert("✅ Conectado a " + device.name);
+  } catch (e) {
+    console.error("❌ Error al conectar:", e);
+    alert("Error: " + e);
+  }
+};
+
+async function send(cmd) {
+  if (!chara) return alert("Primero conecta el dispositivo");
+  await chara.writeValue(new TextEncoder().encode(cmd));
+  console.log("📤 Enviado:", cmd);
+}
+
+function control(btn, cmd) {
+  const sendCommand = c => send(c).catch(err => console.error(err));
+  btn.onpointerdown = () => sendCommand(cmd);
+  btn.ontouchstart  = () => sendCommand(cmd);
+  btn.onpointerup   = () => sendCommand("S");
+  btn.ontouchend    = () => sendCommand("S");
+}
+
+control(document.getElementById('up'), 'F');
+control(document.getElementById('down'), 'B');
+control(document.getElementById('left'), 'L');
+control(document.getElementById('right'), 'R');
+document.getElementById('stop').onclick = () => send('S');
+</script>
+</body>
+</html>
